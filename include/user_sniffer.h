@@ -11,6 +11,11 @@
  * https://github.com/espressif/esp8266-rtos-sample-code/tree/master/03Wifi/Sniffer_DEMO
  */
 
+// Mac address for client_info parsing
+const uint8_t cli_broadcast1[3] = {0x01, 0x00, 0x5e};
+const uint8_t cli_broadcast2[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t cli_broadcast3[3] = {0x33, 0x33, 0x00};
+
 // Expressif Structures -------
 
 struct lenseq {

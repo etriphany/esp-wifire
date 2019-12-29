@@ -8,7 +8,6 @@
 #include "driver/uart.h"
 
 #include "user_config.h"
-#include "user_sniffer.h"
 #include "user_attack.h"
 
 // Features

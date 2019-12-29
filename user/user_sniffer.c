@@ -20,9 +20,6 @@
 static os_timer_t timer;
 SLIST_HEAD(router_info_head, router_info) router_list;
 uint16_t channel_bits;
-static const uint8_t broadcast1[3] = {0x01, 0x00, 0x5e};
-static const uint8_t broadcast2[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-static const uint8_t broadcast3[3] = {0x33, 0x33, 0x00};
 
 /******************************************************************************
  * Print headers
@@ -30,7 +27,8 @@ static const uint8_t broadcast3[3] = {0x33, 0x33, 0x00};
 void ICACHE_FLASH_ATTR
 print_headers()
 {
-    os_printf("\n|       M1        |        M2         |        M3         | Ch |   Rs  | Prt | Type  |              Desc              | Ts| Fs| Mf| Rt| Pm| Mr| Wp| Sc| ");
+    os_printf("\n ------------------------------------------------------------------------------------------------------------------------------------------------------- ");
+    os_printf("\n|        M1         |        M2         |        M3         | Ch |   Rs  | Prt | Type  |              Desc              | Ts| Fs| Mf| Rt| Pm| Mr| Wp| Sc| ");
 }
 
 /******************************************************************************
@@ -200,7 +198,7 @@ parse_data_packet(struct client_info *client, uint8_t* buf, uint16_t buf_len, in
 	case 2:
 		bssid = buf + 10;
 		// hack - don't know why it works like this...
-		if(os_memcmp(buf + 4, broadcast1, 3) || os_memcmp(buf + 4, broadcast2, 3) || os_memcmp(buf + 4, broadcast3, 3)) {
+		if(os_memcmp(buf + 4, cli_broadcast1, 3) || os_memcmp(buf + 4, cli_broadcast2, 3) || os_memcmp(buf + 4, cli_broadcast3, 3)) {
 			station = buf + 16;
 			ap = buf + 4;
 		} else {
@@ -243,7 +241,7 @@ user_channel_change_cb(void)
             // Change channel
             lookup_channel = i + 1;
             user_set_wifi_channel(i);
-            os_printf("\n\n Channel Shift %d", i);
+            os_printf("\n | \n | Channel Shift %d", i);
             os_timer_arm(&timer, CHANNEL_CHANGE_DELAY, 0);
             break;
         }
@@ -259,7 +257,7 @@ user_channel_change_cb(void)
             {
                 lookup_channel = i + 1;
                 user_set_wifi_channel(i);
-                os_printf("\n\n Channel Shift %d", i);
+                os_printf("\n | \n | Channel Shift %d", i);
                 os_timer_arm(&timer, CHANNEL_CHANGE_DELAY, 0);
                 break;
             }
@@ -286,7 +284,7 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
     const struct frame_control_info *frame_ctrl = (struct frame_control_info *)&hdr->frame_control;
 
     // Print metadata
-    os_printf("\n%s | %s | %s | %u  |  %02d  |  %u  | %u(%-2u) |  %-28s  | %u | %u | %u | %u | %u | %u | %u | %u |",
+    os_printf("\n| %s | %s | %s | %u  |  %02d  |  %u  | %u(%-2u) |  %-28s  | %u | %u | %u | %u | %u | %u | %u | %u |",
         print_mac(hdr->addr1),
         print_mac(hdr->addr2),
         print_mac(hdr->addr3),
@@ -314,7 +312,7 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
         struct beacon_info *beacon_info = os_zalloc(sizeof(struct beacon_info));
 
         parse_beacon_packet(beacon_info, mgnt_pkt->buf, 112);
-        os_printf("SSID [%d], BSSID [%s]",
+        os_printf("\n \\ \n  | Info >>> SSID [%d], BSSID [%s] \n /",
             beacon_info->ssid,
             print_mac(beacon_info->bssid)
         );
@@ -325,10 +323,14 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
         struct client_info *client_info = os_zalloc(sizeof(struct client_info));
 
         parse_data_packet(client_info, data_pkt->buf, 36, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
-        os_printf("[BSSID] %s",
-            print_mac(client_info->bssid)
+        os_printf("\n \\ \n  | Info >>> BSSID [%s], Station [%s], Ap [%s] \n /",
+            print_mac(client_info->bssid),
+            print_mac(client_info->station),
+            print_mac(client_info->ap)
         );
     }
+    else
+        os_printf("\n \\ \n  |  \n /");
     #endif
 
     // Serialize packet
@@ -389,14 +391,14 @@ user_station_scan_done_cb(void *arg, STATUS status)
     // Feed router list
     if (status == OK)
     {
-        os_printf("Station Scan Success [status = %d] \r\n\n", status);
+        os_printf("\nStation Scan Success [status = %d]", status);
         uint8_t i;
         struct bss_info *bss = (struct bss_info *) arg;
         while (bss != NULL)
         {
             if (bss->channel != 0)
             {
-                os_printf("SSID[%s], Channel[%d], Authmode[%d], RSSI[%d]\r\n\n", bss->ssid, bss->channel, bss->authmode, bss->rssi);
+                os_printf("\n Info >>> SSID[%s], RSSI[%d], Channel[%d], Authmode[%d]", bss->ssid, bss->channel, bss->authmode, bss->rssi);
 
                 // Store channel as bitmask (sniffer works per channel)
                 channel_bits |= 1 << (bss->channel);
