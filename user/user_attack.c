@@ -8,18 +8,25 @@
 #include "user_attack.h"
 #include "user_network.h"
 
+/**
+ * Attack foundations from:
+ *
+ * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
+ */
+
 // Features
+static os_timer_t timer;
 static uint16_t beacon_counter = 0;
 
-// Protected deauth MAC
-uint8_t white_list[WHITELIST_LENGTH][ETH_MAC_LEN] =
+// Protected MACs
+uint8_t white_list[2][MAC_ADDR_LEN] =
 {
     { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
     { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
 };
 
 /******************************************************************************
- * Send packet (no socket right throught PHY)
+ * Send packet (no socket, through PHY)
  *******************************************************************************/
 bool ICACHE_FLASH_ATTR
 user_send_packet(uint8_t* packet, uint16_t packet_size, uint8_t channel, uint16_t tries)

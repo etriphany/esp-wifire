@@ -4,12 +4,15 @@
 
 #include "user_network.h"
 
+/**
+ * Network facilities from:
+ *
+ * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
+ */
+
 // Features
 static const uint8_t broadcast_mac[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-/******************************************************************************
- * Change wifi channel
- *******************************************************************************/
 void ICACHE_FLASH_ATTR
 user_set_wifi_channel(uint8_t channel)
 {
@@ -30,12 +33,14 @@ user_is_mac_broadcast(uint8_t* mac)
     return true;
 }
 
+/*
 void user_get_random_mac(uint8_t* mac)
 {
     uint8_t i;
     for (i = 0; i < 6; i++)
         mac[i] = random(256);
 }
+*/
 
 bool ICACHE_FLASH_ATTR
 user_is_mac_valid(uint8_t* mac)

@@ -1,16 +1,27 @@
 #ifndef _USER_SNIFFER_H
 #define _USER_SNIFFER_H
 
-#define SNAP_LEN  2324
-
-#include <c_types.h>
-
 #include "user_config.h"
+
+/**
+ * Sniffing foundations from:
+ *
+ * https://github.com/n0w/esp8266-simple-sniffer
+ * https://github.com/SmingHub/Sming
+ * https://github.com/espressif/esp8266-rtos-sample-code/tree/master/03Wifi/Sniffer_DEMO
+ */
 
 // Expressif Structures -------
 
+struct lenseq {
+    uint16_t length;                // length of packet
+    uint16_t seq;                   // serial number of packet, the high 12bits are serial
+                                    // low 14 bits are Fragment number (usually be 0)
+    uint8_t  address3[6];           // the third address in packet
+};
+
 // Metadata Packet
-struct rx_control_pkt {
+struct rx_control {
     signed rssi:8;                  // signal intensity of packet
     unsigned rate:4;
     unsigned is_group:1;
@@ -34,38 +45,20 @@ struct rx_control_pkt {
     unsigned rxend_state:8;
     unsigned ampdu_cnt:8;
     unsigned channel:4;             // which channel this packet in
-
-    // Hacked from ESP32 SDK
-    // unsigned:12;                 // dropped
-    unsigned secondary_channel:4;   // secondary channel on which this packet is received. 0: none; 1: above; 2: below
-    unsigned :8;
-    unsigned timestamp:32;          // timestamp. The local time when this packet is received. It is precise only if modem sleep or light sleep is not enabled. unit: microsecond
-    unsigned :32;
-    unsigned :31;
-    unsigned ant:1;                 // antenna number from which this packet is received. 0: WiFi antenna 0; 1: WiFi antenna 1
-    unsigned sig_len:12;            // length of packet including Frame Check Sequence(FCS)
-    unsigned :12;
-    unsigned rx_state:8;            // state of the packet. 0: no error; others: error numbers which
+    unsigned:12;
 };
 
-struct lenseq_pkt {
-    uint16_t length;                // length of packet
-    uint16_t seq;                   // serial number of packet, the high 12bits are serial
-                                    // low 14 bits are Fragment number (usually be 0)
-    uint8_t  address3[6];           // the third address in packet
-};
-
-// Data Packet (Expressif calls it "sniffer_buf")
+// Data Packet (Expressif "sniffer_buf")
 struct sniffer_data_pkt {
-    struct rx_control_pkt rx_ctrl;
+    struct rx_control rx_ctrl;
     uint8_t buf[36];                // head of ieee80211 packet
     uint16_t cnt;                   // number count of packet
-    struct lenseq_pkt lenseq[1];    // length of packet
+    struct lenseq lenseq[1];    // length of packet
 };
 
-// Management Packet (Expressif calls it "sniffer_buf2")
+// Management Packet (Expressif "sniffer_buf2")
 struct sniffer_mgmt_pkt {
-    struct rx_control_pkt rx_ctrl;
+    struct rx_control rx_ctrl;
     uint8_t buf[112];
     uint16_t cnt;
     uint16_t len;                   // length of packet
@@ -73,9 +66,8 @@ struct sniffer_mgmt_pkt {
 
 // Abstract Sniffer Packet (Management or Data)
 struct sniffer_pkt {
-    struct rx_control_pkt rx_ctrl;  // metadata header
-    uint8_t payload[0];             // Data or management payload. Length of payload is described by rx_ctrl.sig_len.
-                                    // Type of content determined by packet type argument of callback.
+    struct rx_control rx_ctrl;  // metadata header
+    uint8_t payload[0];             // Length of payload is described by rx_ctrl.sig_len (ESP32 only).
 };
 
 // 802.11 Structures -------
@@ -98,8 +90,8 @@ typedef enum
     REASSOCIATION_RES,
     PROBE_REQ,
     PROBE_RES,
-    NU1,                    /* ......................*/
-    NU2,                    /* 0110, 0111 not used */
+    NU1,
+    NU2,
     BEACON,
     ATIM,
     DISASSOCIATION,
@@ -124,25 +116,15 @@ struct frame_control_info {
     unsigned strict:1;
 };
 
-// 802.11 Beacon
-struct beacon_info {
-  unsigned interval:16;
-  unsigned capability:16;
-  unsigned tag_number:8;
-  unsigned tag_length:8;
-  char ssid[0];
-  uint8 rates[1];
-};
-
 // 802.11 Header
 struct ieee80211_hdr {
-	struct frame_control_info frame_control;
-	// uint16_t duration_id;        // dropped (hacked)
-	uint8_t addr1[ETH_MAC_LEN];
-	uint8_t addr2[ETH_MAC_LEN];
-	uint8_t addr3[ETH_MAC_LEN];
-	uint16_t seq_ctrl;
-    uint8_t addr4[ETH_MAC_LEN];     // optional
+    struct frame_control_info frame_control;
+    uint16_t duration_id;
+    uint8_t addr1[MAC_ADDR_LEN];
+    uint8_t addr2[MAC_ADDR_LEN];
+    uint8_t addr3[MAC_ADDR_LEN];
+    uint16_t seq_ctrl;
+    uint8_t addr4[MAC_ADDR_LEN];     // optional
 };
 
 // 802.11 Packet
@@ -154,10 +136,31 @@ struct ieee80211_pkt {
 
 // Other Structures -------
 
-// Router info
+#ifndef LEAN_MODE
+struct beacon_info {
+	uint8_t bssid[MAC_ADDR_LEN];
+	uint8_t ssid[33];
+	uint8_t ssid_len;
+	uint8_t channel;
+	int8_t err;
+	int8_t rssi;
+	uint8_t capa[2];
+};
+
+struct client_info {
+	uint8_t bssid[MAC_ADDR_LEN];
+	uint8_t station[MAC_ADDR_LEN];
+	uint8_t ap[MAC_ADDR_LEN];
+	uint8_t channel;
+	int8_t err;
+	int8_t rssi;
+	uint16_t seq_n;
+};
+#endif
+
 struct router_info {
     SLIST_ENTRY(router_info) next;
-    uint8_t bssid[6];
+    uint8_t bssid[MAC_ADDR_LEN];
     uint8_t channel;
     uint8_t authmode;
     uint16_t rx_seq;

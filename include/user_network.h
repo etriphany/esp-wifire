@@ -1,7 +1,11 @@
 #ifndef _USER_NETWORK_H
 #define _USER_NETWORK_H
 
-#include <c_types.h>
+/**
+ * Network facilities from:
+ *
+ * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
+ */
 
 uint8_t lookup_channel;     // Used for lookup
 uint8_t current_channel;    // Current channel

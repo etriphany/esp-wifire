@@ -12,7 +12,9 @@
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM        SYSTEM_PARTITION_CUSTOMER_BEGIN
 
 // General
-#define ETH_MAC_LEN                                 6
-#define WHITELIST_LENGTH                            2
+#define LEAN_MODE                                   // Remove for extended logs
+#define MAX_CHANNEL                                 14
+#define MAC_ADDR_LEN                                6
+#define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 minutes
 
 #endif

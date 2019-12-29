@@ -2,12 +2,14 @@
 #include <mem.h>
 #include <ets_sys.h>
 #include <osapi.h>
+#include <gpio.h>
 #include <user_interface.h>
 
 #include "driver/uart.h"
 
 #include "user_config.h"
 #include "user_sniffer.h"
+#include "user_attack.h"
 
 // Features
 static const partition_item_t at_partition_table[] = {
@@ -25,13 +27,13 @@ static const partition_item_t at_partition_table[] = {
  *
  * Callback not marked as ICACHE_FLASH_ATTR (loaded to iRam on boot)
  *******************************************************************************/
-static void
+void ICACHE_FLASH_ATTR
 user_system_init_done_cb(void)
 {
     // Setup hacks
     user_sniffer_init();
+    // user_attacks_init();
 }
-
 
 // ==========================================
 // SDK required functions
@@ -53,7 +55,7 @@ user_init()
     // Init UART
     uart_init(BIT_RATE_115200, BIT_RATE_115200);
 
-    // Promiscuous works only with station mode
+    // Promiscuous mode requires station mode
     wifi_set_opmode(STATION_MODE);
 
     // Wait init done to proceed

