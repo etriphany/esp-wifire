@@ -1,0 +1,6 @@
+# Binary folders
+firmware
+build
+
+# Dev folders
+.vscode
