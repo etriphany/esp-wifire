@@ -9,6 +9,7 @@
 
 #include "user_config.h"
 #include "user_attack.h"
+#include "user_time.h"
 
 // Features
 static const partition_item_t at_partition_table[] = {
@@ -29,7 +30,8 @@ static const partition_item_t at_partition_table[] = {
 void ICACHE_FLASH_ATTR
 user_system_init_done_cb(void)
 {
-    // Setup hacks
+    // Setups
+    user_clock_init();
     user_sniffer_init();
     // user_attacks_init();
 }

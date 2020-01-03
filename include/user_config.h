@@ -12,7 +12,7 @@
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM        SYSTEM_PARTITION_CUSTOMER_BEGIN
 
 // General
-#define LEAN_MODE                                   // Remove for extended logs
+//#define PRINTER_MODE                             // Uart works as text printer, instead PCAP pipe
 #define MAX_CHANNEL                                 14
 #define MAC_ADDR_LEN                                6
 #define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 minutes

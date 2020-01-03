@@ -2,5 +2,8 @@
 firmware
 build
 
+# Binary files
+*.pcap
+
 # Dev folders
 .vscode

