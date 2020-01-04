@@ -19,7 +19,6 @@ static const pcap_file_hdr_t file_header = { 0xa1b2c3d4, 2, 4, 0, 0, sizeof(int)
 
 /******************************************************************************
  * Send PCAP file header
- *
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
 tx_file_header(coid)
@@ -29,7 +28,6 @@ tx_file_header(coid)
 
 /******************************************************************************
  * Send PCAP record header
- *
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
 tx_record_header(uint8_t *pkt, uint16_t pkt_len){

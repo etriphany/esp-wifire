@@ -1,8 +1,6 @@
 #ifndef _USER_TIME_H
 #define _USER_TIME_H
 
-#include "user_config.h"
-
 #define  MAGIC_1E3_wLO  0x4bc6a7f0    // LS part
 #define  MAGIC_1E3_wHI  0x00418937    // MS part, magic multiplier
 

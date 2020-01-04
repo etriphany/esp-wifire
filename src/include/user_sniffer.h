@@ -17,7 +17,7 @@ struct lenseq {
     uint16_t length;                // length of packet
     uint16_t seq;                   // serial number of packet, the high 12bits are serial
                                     // low 14 bits are Fragment number (usually be 0)
-    uint8_t  address3[6];           // the third address in packet
+    uint8_t address3[MAC_ADDR_LEN]; // the third address in packet
 };
 
 // Metadata Packet
@@ -53,7 +53,7 @@ struct sniffer_data_pkt {
     struct rx_control rx_ctrl;
     uint8_t buf[36];                // head of ieee80211 packet
     uint16_t cnt;                   // number count of packet
-    struct lenseq lenseq[1];    // length of packet
+    struct lenseq lenseq[1];        // length of packet
 };
 
 // Management Packet (Expressif "sniffer_buf2")
@@ -66,7 +66,7 @@ struct sniffer_mgmt_pkt {
 
 // Abstract Sniffer Packet (Management or Data)
 struct sniffer_pkt {
-    struct rx_control rx_ctrl;  // metadata header
+    struct rx_control rx_ctrl;      // metadata header
     uint8_t payload[0];             // Length of payload is described by rx_ctrl.sig_len (ESP32 only).
 };
 

@@ -23,8 +23,9 @@
 
 // Features
 static os_timer_t timer;
+static uint8_t lookup_channel;
+static uint16_t channel_bits;
 SLIST_HEAD(router_info_head, router_info) router_list;
-uint16_t channel_bits;
 
 /******************************************************************************
  * Channel change callback
@@ -95,7 +96,7 @@ user_sniff(void)
 {
     #ifdef PRINTER_MODE
     // Headers
-    print_headers();
+    user_print_headers();
     #else
     // Initialize PCAP transmission
     user_pcap_init();
