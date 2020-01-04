@@ -72,8 +72,8 @@ user_pre_init(void)
    uint32_t partition = sizeof(at_partition_table) / sizeof(at_partition_table[0]);
    if(!system_partition_table_regist(at_partition_table, partition, SPI_FLASH_SIZE_MAP))
    {
-		os_printf("Init failed: Partition table registry\r\n");
-		while(1);
+        os_printf("Init failed: Partition table registry\r\n");
+        while(1);
    }
 }
 
