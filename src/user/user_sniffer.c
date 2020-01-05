@@ -3,6 +3,8 @@
 #include <ets_sys.h>
 #include <osapi.h>
 #include <user_interface.h>
+#include <queue.h>
+
 
 #ifdef PRINTER_MODE
 #include "user_printer.h"
@@ -22,50 +24,29 @@
  */
 
 // Features
-static os_timer_t timer;
+static uint32_t last_update = 0;
 static uint8_t lookup_channel;
+static uint8_t current_channel;
 static uint16_t channel_bits;
 SLIST_HEAD(router_info_head, router_info) router_list;
 
+void ICACHE_FLASH_ATTR user_sniff(void);
+uint8_t ICACHE_FLASH_ATTR pick_valid_channel(void);
+
 /******************************************************************************
- * Channel change callback
- *
- * Callback not marked as ICACHE_FLASH_ATTR (loaded to iRam on boot)
+ * Change current channel
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
-user_channel_change_cb(void)
+set_wifi_channel(uint8_t channel)
 {
-    uint8_t i;
-
-    for (i = lookup_channel; i < 14; i++)
+    if ((channel != current_channel) && (channel > 0) && (channel < MAX_CHANNEL + 1))
     {
-        // Matches detection result
-        if ((channel_bits & (1 << i)) != 0)
-        {
-            // Change channel
-            lookup_channel = i + 1;
-            user_set_wifi_channel(i);
-            os_printf("\n | \n | Channel Shift %d", i);
-            os_timer_arm(&timer, CHANNEL_CHANGE_DELAY, 0);
-            break;
-        }
-    }
+        // Change channel
+        current_channel = channel;
+        wifi_set_channel(current_channel);
 
-    // Reset when reaches last possible channel
-    if (i == 14) {
-        lookup_channel = 1;
-        for(i = lookup_channel; i < 14; i++)
-        {
-            // Matches detection result
-            if ((channel_bits & (1 << i)) != 0)
-            {
-                lookup_channel = i + 1;
-                user_set_wifi_channel(i);
-                os_printf("\n | \n | Channel Shift %d", i);
-                os_timer_arm(&timer, CHANNEL_CHANGE_DELAY, 0);
-                break;
-            }
-        }
+        // Post event
+        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, current_channel);
     }
 }
 
@@ -81,37 +62,11 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
 {
     #ifdef PRINTER_MODE
     // Print details
-    user_print_packet(buf, buf_len);
+    user_print_packet(buf, buf_len, current_channel);
     #else
     // Pcap record
     user_pcap_record(buf, buf_len);
     #endif
-}
-
-/******************************************************************************
- * Start sniffer loop
- *******************************************************************************/
-void ICACHE_FLASH_ATTR
-user_sniff(void)
-{
-    #ifdef PRINTER_MODE
-    // Headers
-    user_print_headers();
-    #else
-    // Initialize PCAP transmission
-    user_pcap_init();
-    #endif
-
-    // Enable promiscuous mode
-    wifi_set_channel(1);
-    wifi_promiscuous_enable(0);
-    wifi_set_promiscuous_rx_cb(user_promiscuous_rx_cb);
-    wifi_promiscuous_enable(1);
-
-    // Configure channel change
-    os_timer_disarm(&timer);
-    os_timer_setfn(&timer, (os_timer_func_t *)user_channel_change_cb, NULL);
-    os_timer_arm(&timer, CHANNEL_CHANGE_DELAY, 0);
 }
 
 /******************************************************************************
@@ -120,7 +75,7 @@ user_sniff(void)
 void ICACHE_FLASH_ATTR
 user_station_scan_done_cb(void *arg, STATUS status)
 {
-    uint8_t ssid[33];
+    uint8_t ssid[MAX_SSID_LEN];
     struct router_info *info = NULL;
 
     // Reset state
@@ -144,7 +99,7 @@ user_station_scan_done_cb(void *arg, STATUS status)
         {
             if (bss->channel != 0)
             {
-                os_printf("\n Info >>> SSID[%s], RSSI[%d], Channel[%d], Authmode[%d]", bss->ssid, bss->channel, bss->authmode, bss->rssi);
+                os_printf("\n Info >>> SSID[%s], Channel[%d], RSSI[%d], Authmode[%d]", bss->ssid, bss->channel, bss->rssi, bss->authmode);
 
                 // Store channel as bitmask (sniffer works per channel)
                 channel_bits |= 1 << (bss->channel);
@@ -162,13 +117,83 @@ user_station_scan_done_cb(void *arg, STATUS status)
             bss = STAILQ_NEXT(bss, next);
         }
 
-        // Sniff loop
-        os_delay_us(60000);
+        // Start sniff
         user_sniff();
     }
     else
     {
         os_printf("Station Scan Failed [status = %d] \r\n\n", status);
+    }
+}
+
+/******************************************************************************
+ * Start sniffer loop
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+user_sniff(void)
+{
+    #ifdef PRINTER_MODE
+    // Headers
+    user_print_headers();
+    #else
+    // Initialize PCAP transmission
+    user_pcap_init();
+    #endif
+
+    // Pick valid channel
+    pick_valid_channel();
+
+    // Enable promiscuous mode
+    wifi_promiscuous_enable(0);
+    wifi_set_promiscuous_rx_cb(user_promiscuous_rx_cb);
+    wifi_promiscuous_enable(1);
+
+    // Post event
+    system_os_post(USER_TASK_PRIO_0, SIG_SNIFFER_UP, current_channel);
+}
+
+/******************************************************************************
+ * Pick valid channel
+ *******************************************************************************/
+uint8_t ICACHE_FLASH_ATTR
+pick_valid_channel(void)
+{
+    uint8_t i;
+    for (i = lookup_channel; i < MAX_CHANNEL; i++)
+    {
+        // Matches detection result
+        if ((channel_bits & (1 << i)) != 0)
+        {
+            // Change channel
+            lookup_channel = i + 1;
+            set_wifi_channel(i);
+            os_printf("\n | \n | Channel Shift %d", i);
+            break;
+        }
+    }
+    return i;
+}
+
+/******************************************************************************
+ * Sniffer update
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+user_sniffer_update(const uint32_t millis)
+{
+    // Check if action is required
+    if((millis - last_update)  < CHANNEL_CHANGE_DELAY)
+        return;
+
+    // Track update time
+    last_update = millis;
+
+    // Update channel
+    uint8_t picked = pick_valid_channel();
+
+    // Reset when reaches last possible channel
+    if (picked == MAX_CHANNEL) {
+        lookup_channel = 1;
+        pick_valid_channel();
     }
 }
 
@@ -183,9 +208,11 @@ user_sniffer_init(void)
     system_set_os_print(0);
     #endif
 
-    struct scan_config *config = NULL;
     // Init routers list
     SLIST_INIT(&router_list);
+
     // Scan routers
-    wifi_station_scan(config, user_station_scan_done_cb);
+    struct scan_config config = {};
+    config.show_hidden = 1;
+    wifi_station_scan(&config, user_station_scan_done_cb);
 }

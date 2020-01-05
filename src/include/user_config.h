@@ -12,9 +12,21 @@
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM        SYSTEM_PARTITION_CUSTOMER_BEGIN
 
 // General
-//#define PRINTER_MODE                             // Uart works as text printer, instead PCAP pipe
+//#define PRINTER_MODE                                // Uart works as text printer, instead PCAP pipe
+
+// Limits
 #define MAX_CHANNEL                                 14
+#define MAX_SSID_LEN                                32
 #define MAC_ADDR_LEN                                6
+
+// Delays
 #define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 minutes
+#define BEACON_DELAY                                2 * 1000        // 2 seconds
+
+// Tasks / Signals / Events
+#define TASK_QUEUE_SIZE                             4
+#define SIG_SNIFFER_UP                              0x10
+#define SIG_CHANNEL                                 0x20
+#define SIG_CLOCK_TICK                              0x30
 
 #endif

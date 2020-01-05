@@ -2,6 +2,6 @@
 #define _USER_PRINTER_H
 
 void user_print_headers(void);
-void user_print_packet(uint8_t *buf, uint16_t buf_len);
+void user_print_packet(uint8_t *buf, uint16_t buf_len, uint8_t channel);
 
 #endif

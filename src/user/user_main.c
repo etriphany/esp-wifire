@@ -12,6 +12,7 @@
 #include "user_time.h"
 
 // Features
+static os_event_t *events[1];
 static const partition_item_t at_partition_table[] = {
     { SYSTEM_PARTITION_BOOTLOADER, 						0x0, 												0x1000},
     { SYSTEM_PARTITION_OTA_1,   						0x1000, 											SYSTEM_PARTITION_OTA_SIZE},
@@ -23,6 +24,28 @@ static const partition_item_t at_partition_table[] = {
 };
 
 /******************************************************************************
+ * Task callback / Priority 0 (lower).
+ *******************************************************************************/
+static void
+user_task0_cb(os_event_t *event)
+{
+    switch(event->sig)
+    {
+        case SIG_SNIFFER_UP:
+            user_attacks_init(event->par);
+            break;
+
+        case SIG_CHANNEL:
+            user_attack_set_channel(event->par);
+            break;
+
+        case SIG_CLOCK_TICK:
+            user_sniffer_update(event->par);
+            break;
+    }
+}
+
+/******************************************************************************
  * System init done callback.
  *
  * Callback not marked as ICACHE_FLASH_ATTR (loaded to iRam on boot)
@@ -30,10 +53,13 @@ static const partition_item_t at_partition_table[] = {
 void ICACHE_FLASH_ATTR
 user_system_init_done_cb(void)
 {
-    // Setups
+    // Register event handler
+    events[0] = (os_event_t*) os_malloc(sizeof(os_event_t) * TASK_QUEUE_SIZE);
+    system_os_task(user_task0_cb, USER_TASK_PRIO_0, events[0], TASK_QUEUE_SIZE);
+
+    // Initialize features
     user_clock_init();
     user_sniffer_init();
-    // user_attacks_init();
 }
 
 // ==========================================
@@ -58,6 +84,7 @@ user_init()
 
     // Promiscuous mode requires station mode
     wifi_set_opmode(STATION_MODE);
+    system_phy_set_max_tpw((uint8_t)20.5f * 4.0f);
 
     // Wait init done to proceed
     system_init_done_cb(user_system_init_done_cb);

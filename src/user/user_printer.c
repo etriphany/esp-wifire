@@ -46,7 +46,7 @@ parse_beacon_packet(struct beacon_info *beacon, uint8_t* buf, uint16_t buf_len)
                         beacon->err = -1;
                         break;
                     }
-                    if(beacon->ssid_len > 32)
+                    if(beacon->ssid_len > MAX_SSID_LEN)
                     {
                         beacon->err = -2;
                         break;
@@ -218,7 +218,7 @@ user_print_headers(void)
  * Print packet
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
-user_print_packet(uint8_t *buf, uint16_t buf_len)
+user_print_packet(uint8_t *buf, uint16_t buf_len, uint8_t channel)
 {
     // Generic
     const struct sniffer_pkt *pkt = (struct sniffer_pkt *)buf;
@@ -233,7 +233,7 @@ user_print_packet(uint8_t *buf, uint16_t buf_len)
         print_mac(hdr->addr1),
         print_mac(hdr->addr2),
         print_mac(hdr->addr3),
-        current_channel,
+        channel,
         pkt->rx_ctrl.rssi,
         frame_ctrl->protocol,
         frame_ctrl->type,

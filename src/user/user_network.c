@@ -2,6 +2,7 @@
 #include <osapi.h>
 #include <user_interface.h>
 
+#include "user_config.h"
 #include "user_network.h"
 
 /**
@@ -13,40 +14,29 @@
 // Features
 static const uint8_t broadcast_mac[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-void ICACHE_FLASH_ATTR
-user_set_wifi_channel(uint8_t channel)
-{
-    if ((channel != current_channel) && (channel > 0) && (channel < 15))
-    {
-        current_channel = channel;
-        wifi_set_channel(current_channel);
-    }
-}
-
 bool ICACHE_FLASH_ATTR
 user_is_mac_broadcast(uint8_t* mac)
 {
     uint8_t i = 0;
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < MAC_ADDR_LEN; i++)
         if (mac[i] != broadcast_mac[i]) return false;
 
     return true;
 }
 
-/*
-void user_get_random_mac(uint8_t* mac)
+void ICACHE_FLASH_ATTR
+user_get_random_mac(uint8_t* mac)
 {
     uint8_t i;
-    for (i = 0; i < 6; i++)
-        mac[i] = random(256);
+    for (i = 0; i < MAC_ADDR_LEN; i++)
+         mac[i] = os_random() % 256;
 }
-*/
 
 bool ICACHE_FLASH_ATTR
 user_is_mac_valid(uint8_t* mac)
 {
     uint8_t i = 0;
-    for (i = 0; i < 6; i++)
+    for (i = 0; i < MAC_ADDR_LEN; i++)
         if (mac[i] != 0x00) return true;
 
     return false;

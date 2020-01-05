@@ -29,10 +29,13 @@ user_micros_overflow_tick_cb(void)
    if(m < micros_last_overflow_tick)
       ++micros_overflow_cnt;
    micros_last_overflow_tick = m;
+
+   // Post event
+   system_os_post(USER_TASK_PRIO_0, SIG_CLOCK_TICK, millis());
 }
 
 /******************************************************************************
- * Clock tick timer.
+ * Clock tick timer (1 min).
  *
  *******************************************************************************/
 void ICACHE_FLASH_ATTR

@@ -1,6 +1,8 @@
 #ifndef _USER_SNIFFER_H
 #define _USER_SNIFFER_H
 
+#include <queue.h>
+
 #include "user_config.h"
 
 /**
@@ -138,7 +140,7 @@ struct ieee80211_pkt {
 
 struct beacon_info {
 	uint8_t bssid[MAC_ADDR_LEN];
-	uint8_t ssid[33];
+	uint8_t ssid[MAX_SSID_LEN + 1];
 	uint8_t ssid_len;
 	uint8_t channel;
 	int8_t err;
@@ -167,6 +169,7 @@ struct router_info {
     uint8_t iv_check;
 };
 
+void user_sniffer_update(const uint32_t millis);
 void user_sniffer_init(void);
 
 #endif

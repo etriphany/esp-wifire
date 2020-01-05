@@ -7,11 +7,7 @@
  * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
  */
 
-uint8_t lookup_channel;     // Used for lookup
-uint8_t current_channel;    // Current channel
-
-void user_set_wifi_channel(uint8_t channel);
-
+void user_get_random_mac(uint8_t* mac);
 bool user_is_mac_broadcast(uint8_t* mac);
 bool user_is_mac_valid(uint8_t* mac);
 bool user_is_mac_multicast(uint8_t* mac);
