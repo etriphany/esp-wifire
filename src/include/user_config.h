@@ -20,6 +20,7 @@
 #define MAC_ADDR_LEN                                6
 
 // Delays
+#define ROUTERS_UPDATE_DELAY                        25 * 60 * 1000  // 25 min
 #define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 min
 #define BEACON_SPAM_DELAY                           5               // 5 ms
 
