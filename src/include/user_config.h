@@ -11,13 +11,14 @@
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM_ADDR   0x7c000
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM        SYSTEM_PARTITION_CUSTOMER_BEGIN
 
-// General
-//#define PRINTER_MODE                                // Uart works as text printer, instead PCAP pipe
-
-// Limits
+// Universal Wi-fi constants (don't touch)
 #define MAX_CHANNEL                                 14
 #define MAX_SSID_LEN                                32
 #define MAC_ADDR_LEN                                6
+
+// General
+//#define PRINTER_MODE                                    // Uart works as text printer, instead PCAP pipe
+#define MAX_FAKE_NETWORKS                           50    // Max fake networks (beacon spam)
 
 // Delays
 #define ROUTERS_UPDATE_DELAY                        25 * 60 * 1000  // 25 min

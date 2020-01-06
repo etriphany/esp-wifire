@@ -20,7 +20,6 @@
 // Features
 static os_timer_t timer;
 static uint8_t current_channel;
-static uint8_t random_mac[6];
 
 // Beacon features
 static struct fake_router_info *spam_beacon = NULL;
@@ -32,6 +31,10 @@ static uint8_t macs_white_list[2][MAC_ADDR_LEN] =
     { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
     { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
 };
+
+// Probe features
+static uint32_t client_mac_cnt = 0;
+static uint8_t random_client_mac[6];
 
 
 /******************************************************************************
@@ -51,12 +54,16 @@ void ICACHE_FLASH_ATTR
 feed_fake_routers(void)
 {
     uint8_t i, buf[MAX_SSID_LEN];
+    uint8_t random_mac[6];
+
+    // Generate random mac
+    user_get_random_mac(random_mac);
 
     // Init fake routers list
     SLIST_INIT(&router_list);
 
     // Feed fake routers list
-    for(i = 0; i < FAKE_NETWORKS; ++i)
+    for(i = 0; i < MAX_FAKE_NETWORKS; ++i)
     {
         struct fake_router_info *info = NULL;
         info = (struct fake_router_info *) os_malloc(sizeof(struct fake_router_info));
@@ -91,7 +98,7 @@ send_packet(uint8_t* packet, uint16_t packet_size, uint16_t repeat)
 }
 
 /******************************************************************************
- * Deauth packet attack.
+ * Deauth packets
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
 attack_deauth(uint8_t* ap_mac, uint8_t* client_mac, uint8_t reason, uint8_t channel)
@@ -132,7 +139,7 @@ attack_deauth(uint8_t* ap_mac, uint8_t* client_mac, uint8_t reason, uint8_t chan
 }
 
 /******************************************************************************
- * Probe packet attack.
+ * Probe request packet
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
 attack_probe(const char* ssid, uint8_t channel)
@@ -144,8 +151,11 @@ attack_probe(const char* ssid, uint8_t channel)
     if (ssid_len > MAX_SSID_LEN)
         ssid_len = MAX_SSID_LEN;
 
+    // Mac
+    random_client_mac[5] = ++client_mac_cnt;
+
     // Build probe packet
-    os_memcpy(&probe_packet[10], random_mac, MAC_ADDR_LEN);
+    os_memcpy(&probe_packet[10], random_client_mac, MAC_ADDR_LEN);
     os_memcpy(&probe_packet[26], ssid, ssid_len);
 
     // Send
@@ -153,7 +163,7 @@ attack_probe(const char* ssid, uint8_t channel)
 }
 
 /******************************************************************************
- * Beacon packet attack.
+ * Beacon packet
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
 attack_beacon(uint8_t* mac, const char* ssid, uint8_t channel, bool wpa2)
@@ -213,7 +223,9 @@ user_beacon_timer_cb(uint32_t millis)
 void user_attack_set_channel(uint8_t channel)
 {
     current_channel = channel;
-    user_get_random_mac(random_mac);
+    // Update client mac
+    client_mac_cnt = 0;
+    user_get_random_mac(random_client_mac);
 }
 
 /******************************************************************************
@@ -224,7 +236,6 @@ user_attacks_init(uint8_t channel)
 {
    // Setups
    current_channel = channel;
-   user_get_random_mac(random_mac);
    feed_fake_routers();
 
    // Beacon spam timer
