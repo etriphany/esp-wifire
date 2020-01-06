@@ -7,7 +7,7 @@
  * https://github.com/spacehuhn/esp8266_deauther/tree/master/esp8266_deauther
  */
 
-#define FAKE_NETWORKS     10    // Number of fake networks
+#define FAKE_NETWORKS     50    // Number of fake networks
 
 struct fake_router_info {
     SLIST_ENTRY(fake_router_info) next;

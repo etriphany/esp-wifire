@@ -20,8 +20,8 @@
 #define MAC_ADDR_LEN                                6
 
 // Delays
-#define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 minutes
-#define BEACON_DELAY                                2 * 1000        // 2 seconds
+#define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 min
+#define BEACON_SPAM_DELAY                           5               // 5 ms
 
 // Tasks / Signals / Events
 #define TASK_QUEUE_SIZE                             4

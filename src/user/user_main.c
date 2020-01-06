@@ -84,7 +84,6 @@ user_init()
 
     // Promiscuous mode requires station mode
     wifi_set_opmode(STATION_MODE);
-    system_phy_set_max_tpw((uint8_t)20.5f * 4.0f);
 
     // Wait init done to proceed
     system_init_done_cb(user_system_init_done_cb);

