@@ -169,6 +169,12 @@ struct router_info {
     uint8_t iv_check;
 };
 
+struct channel_data {
+    uint8_t lookup;
+    uint8_t current;
+    uint16_t bits;
+};
+
 void user_sniffer_update(const uint32_t millis);
 void user_sniffer_init(void);
 

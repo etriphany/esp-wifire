@@ -25,13 +25,12 @@
 
 // Features
 static bool started = FALSE;
-static uint32_t last_channel_update = 0;
-static uint32_t last_routers_update = 0;
-static uint8_t lookup_channel;
-static uint8_t current_channel;
-static uint16_t channel_bits;
+static uint32_t ts_channel = 0;
+static uint32_t ts_routers = 0;
+static struct channel_data chdata = {};
 SLIST_HEAD(router_info_head, router_info) router_list;
 
+// Definitions
 void user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len);
 void user_station_scan_done_cb(void *arg, STATUS status);
 void set_wifi_channel(uint8_t channel);
@@ -64,9 +63,9 @@ sniff(void)
 
     // Post event
     if(!started)
-        system_os_post(USER_TASK_PRIO_0, SIG_SNIFFER_UP, current_channel);
+        system_os_post(USER_TASK_PRIO_0, SIG_SNIFFER_UP, chdata.current);
     else
-        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, current_channel);
+        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, chdata.current);
 }
 
 /******************************************************************************
@@ -76,13 +75,13 @@ uint8_t ICACHE_FLASH_ATTR
 pick_valid_channel(void)
 {
     uint8_t i;
-    for (i = lookup_channel; i < MAX_CHANNEL; i++)
+    for (i = chdata.lookup; i < MAX_CHANNEL; i++)
     {
         // Matches detection result
-        if ((channel_bits & (1 << i)) != 0)
+        if ((chdata.bits & (1 << i)) != 0)
         {
             // Change channel
-            lookup_channel = i + 1;
+            chdata.lookup = i + 1;
             set_wifi_channel(i);
             os_printf("\n | \n | Channel Shift %d", i);
             break;
@@ -112,14 +111,14 @@ scan_routers(void)
 void ICACHE_FLASH_ATTR
 set_wifi_channel(uint8_t channel)
 {
-    if ((channel != current_channel) && (channel > 0) && (channel < MAX_CHANNEL + 1))
+    if ((channel != chdata.current) && (channel > 0) && (channel < MAX_CHANNEL + 1))
     {
         // Change channel
-        current_channel = channel;
-        wifi_set_channel(current_channel);
+        chdata.current = channel;
+        wifi_set_channel(chdata.current);
 
         // Post event
-        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, current_channel);
+        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, chdata.current);
     }
 }
 
@@ -135,7 +134,7 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
 {
     #ifdef PRINTER_MODE
     // Print details
-    user_print_packet(buf, buf_len, current_channel);
+    user_print_packet(buf, buf_len, chdata.current);
     #else
     // Pcap record
     user_pcap_record(buf, buf_len);
@@ -152,8 +151,9 @@ user_station_scan_done_cb(void *arg, STATUS status)
     struct router_info *info = NULL;
 
     // Reset state
-    channel_bits = 0;
-    current_channel = 1;
+    chdata.bits = 0;
+    chdata.lookup = 0;
+    chdata.current = 1;
 
     // Clear router list (free memory)
     while ((info = SLIST_FIRST(&router_list)) != NULL)
@@ -175,7 +175,7 @@ user_station_scan_done_cb(void *arg, STATUS status)
                 os_printf("\n Info >>> SSID[%s], Channel[%d], RSSI[%d], Authmode[%d]", bss->ssid, bss->channel, bss->rssi, bss->authmode);
 
                 // Store channel as bitmask (sniffer works per channel)
-                channel_bits |= 1 << (bss->channel);
+                chdata.bits |= 1 << (bss->channel);
 
                 // Save station info
                 struct router_info *info = NULL;
@@ -206,28 +206,27 @@ void ICACHE_FLASH_ATTR
 user_sniffer_update(const uint32_t millis)
 {
 
-    if((millis - last_routers_update)  >= ROUTERS_UPDATE_DELAY)
+    if((millis - ts_routers)  >= ROUTERS_UPDATE_DELAY)
     {
         // Track update time
-        last_routers_update = millis;
+        ts_routers = millis;
         scan_routers();
     }
 
-    if((millis - last_channel_update)  >= CHANNEL_CHANGE_DELAY)
+    if((millis - ts_channel)  >= CHANNEL_CHANGE_DELAY)
     {
         // Track update time
-        last_channel_update = millis;
+        ts_channel = millis;
 
         // Update channel
         uint8_t picked = pick_valid_channel();
 
         // Reset when reaches last possible channel
         if (picked == MAX_CHANNEL) {
-            lookup_channel = 1;
+            chdata.lookup = 1;
             pick_valid_channel();
         }
     }
-
 }
 
 /******************************************************************************
