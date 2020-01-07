@@ -298,7 +298,8 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
         struct sniffer_data_pkt *data_pkt = (struct sniffer_data_pkt *)buf;
         struct client_info client = parse_data_packet(data_pkt->buf, 36, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
 
-        // Attack
+        // Register target for attack
+        //user_attack_client_target(&client);
 
         #ifdef PRINTER_MODE
         user_print_client(&client);
@@ -349,6 +350,9 @@ user_station_scan_done_cb(void *arg, STATUS status)
                 info->channel = bss->channel;
                 os_memcpy(info->bssid, bss->bssid, 6);
                 SLIST_INSERT_HEAD(&router_list, info, next);
+
+                // Register target for attack
+                //user_attack_router_target(&info);
             }
 
             // Next result entry
@@ -371,14 +375,14 @@ void ICACHE_FLASH_ATTR
 user_sniffer_update(const uint32_t millis)
 {
 
-    if((millis - ts_routers)  >= ROUTERS_UPDATE_DELAY)
+    if((millis - ts_routers) >= ROUTERS_UPDATE_DELAY)
     {
         // Track update time
         ts_routers = millis;
         scan_routers();
     }
 
-    if((millis - ts_channel)  >= CHANNEL_CHANGE_DELAY)
+    if((millis - ts_channel) >= CHANNEL_CHANGE_DELAY)
     {
         // Track update time
         ts_channel = millis;

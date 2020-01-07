@@ -5,11 +5,15 @@
 #include <user_interface.h>
 #include <queue.h>
 
+#include "modules/hashtable/hashtable.h"
+
 #include "user_config.h"
 #include "user_packets.h"
 #include "user_attack.h"
 #include "user_network.h"
 #include "user_names.h"
+#include "user_sniffer.h"
+#include "user_time.h"
 
 /**
  * Attack foundations from:
@@ -19,23 +23,23 @@
 
 // Features
 static os_timer_t timer;
+hash_t *clients_hash;
+hash_t *routers_hash;
 static uint8_t current_channel;
-
-// Beacon features
-static struct fake_router_info *spam_beacon = NULL;
-SLIST_HEAD(fake_router_info_head, fake_router_info) router_list;
-
-// Deauth features
-static uint8_t macs_white_list[2][MAC_ADDR_LEN] =
+static uint32_t ts_nodes = 0;
+static uint8_t white_list[2][MAC_ADDR_LEN] =
 {
     { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
     { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
 };
 
+// Beacon features
+static struct fake_router_info *spam_beacon = NULL;
+SLIST_HEAD(fake_router_info_head, fake_router_info) fakes_list;
+
 // Probe features
 static uint32_t client_mac_cnt = 0;
 static uint8_t random_client_mac[6];
-
 
 /******************************************************************************
  * Fake SSID generator
@@ -60,7 +64,7 @@ feed_fake_routers(void)
     user_get_random_mac(random_mac);
 
     // Init fake routers list
-    SLIST_INIT(&router_list);
+    SLIST_INIT(&fakes_list);
 
     // Feed fake routers list
     for(i = 0; i < MAX_FAKE_NETWORKS; ++i)
@@ -77,7 +81,7 @@ feed_fake_routers(void)
         random_mac[5] = (i + 1);
         os_memcpy(&info->bssid, random_mac, MAC_ADDR_LEN);
 
-        SLIST_INSERT_HEAD(&router_list, info, next);
+        SLIST_INSERT_HEAD(&fakes_list, info, next);
         spam_beacon = info;
     }
 }
@@ -202,19 +206,61 @@ attack_beacon(uint8_t* mac, const char* ssid, uint8_t channel, bool wpa2)
 }
 
 /******************************************************************************
- * User beacon timer callback
+ * Attack tick callback
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
-user_beacon_timer_cb(uint32_t millis)
+user_attack_tick_cb(void)
 {
     // Spam beacon
     spam_beacon = SLIST_NEXT(spam_beacon, next);
     if(spam_beacon == NULL)
-        spam_beacon = SLIST_FIRST(&router_list);
+        spam_beacon = SLIST_FIRST(&fakes_list);
     attack_beacon(spam_beacon->bssid, spam_beacon->ssid, current_channel, TRUE);
+
 
    // Schedule next
    os_timer_arm(&timer, BEACON_SPAM_DELAY, 0);
+}
+
+/******************************************************************************
+ * Attack tick callback
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+user_batch_attack(uint32_t millis)
+{
+    // Probes
+
+    // Deauths
+}
+
+/******************************************************************************
+ * Save router victim
+ *******************************************************************************/
+void user_attack_router_target(struct router_info *router)
+{
+    // TODO: use bssid as key, check whitelist before
+    if(hash_lookup(routers_hash, "key") == NULL)
+    {
+        struct router_info *info = NULL;
+        info = (struct router_info *) os_malloc(sizeof(struct router_info));
+        os_memcpy(&info, &router, sizeof(router));
+        hash_insert(routers_hash, "key", router);
+    }
+}
+
+/******************************************************************************
+ * Save client victim
+ *******************************************************************************/
+void user_attack_client_target(struct client_info *client)
+{
+    // TODO: use mac as key, check whitelist before
+    if(hash_lookup(clients_hash, "key") == NULL)
+    {
+        struct client_info *info = NULL;
+        info = (struct client_info *) os_malloc(sizeof(struct client_info));
+        os_memcpy(&info, &client, sizeof(client));
+        hash_insert(clients_hash, "key", client);
+    }
 }
 
 /******************************************************************************
@@ -223,9 +269,14 @@ user_beacon_timer_cb(uint32_t millis)
 void user_attack_set_channel(uint8_t channel)
 {
     current_channel = channel;
+
     // Update client mac
     client_mac_cnt = 0;
     user_get_random_mac(random_client_mac);
+
+    // Clean targets
+    os_free(clients_hash);
+    clients_hash = hash_create(MAX_TRACKED_CLIENTS);
 }
 
 /******************************************************************************
@@ -236,10 +287,12 @@ user_attacks_init(uint8_t channel)
 {
    // Setups
    current_channel = channel;
+   clients_hash = hash_create(MAX_TRACKED_CLIENTS);
+   routers_hash = hash_create(MAX_TRACKED_ROUTERS);
    feed_fake_routers();
 
    // Beacon spam timer
    os_timer_disarm(&timer);
-   os_timer_setfn(&timer, (os_timer_func_t*) &user_beacon_timer_cb, 0);
+   os_timer_setfn(&timer, (os_timer_func_t*) &user_attack_tick_cb, 0);
    os_timer_arm(&timer, BEACON_SPAM_DELAY, 0);
 }

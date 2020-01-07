@@ -20,7 +20,7 @@ ESPPORT		?= /dev/ttyUSB0
 TARGET = app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES = user driver
+MODULES = user driver modules/hashtable
 EXTRA_INCDIR    = include
 
 # libraries used in this project, mainly provided by the SDK (some by Xtensa)

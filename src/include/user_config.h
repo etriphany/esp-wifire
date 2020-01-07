@@ -17,18 +17,21 @@
 #define MAC_ADDR_LEN                                6
 
 // General
-//#define PRINTER_MODE                                    // Uart works as text printer, instead PCAP pipe
-#define MAX_FAKE_NETWORKS                           50    // Max fake networks (beacon spam)
+//#define PRINTER_MODE                                              // Uart works as text printer, instead PCAP pipe
+#define MAX_FAKE_NETWORKS                           50              // Max fake networks (beacon spam)
+#define MAX_TRACKED_ROUTERS                         15              // Max tracked unique routers (reseted per channel)
+#define MAX_TRACKED_CLIENTS                         50              // Max tracked unique clients (reseted per channel)
 
-// Delays
+// Time delays
 #define ROUTERS_UPDATE_DELAY                        25 * 60 * 1000  // 25 min
 #define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 min
 #define BEACON_SPAM_DELAY                           5               // 5 ms
 
 // Tasks / Signals / Events
 #define TASK_QUEUE_SIZE                             4
-#define SIG_SNIFFER_UP                              0x10
-#define SIG_CHANNEL                                 0x20
-#define SIG_CLOCK_TICK                              0x30
+#define SIG_CLOCK_TICK                              0x10
+#define SIG_SNIFFER_UP                              0x20
+#define SIG_CHANNEL                                 0x30
+
 
 #endif

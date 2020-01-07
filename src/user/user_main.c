@@ -26,7 +26,7 @@ static const partition_item_t at_partition_table[] = {
 /******************************************************************************
  * Task callback / Priority 0 (lower).
  *******************************************************************************/
-static void
+static void ICACHE_FLASH_ATTR
 user_task0_cb(os_event_t *event)
 {
     switch(event->sig)
@@ -41,6 +41,7 @@ user_task0_cb(os_event_t *event)
 
         case SIG_CLOCK_TICK:
             user_sniffer_update(event->par);
+            user_batch_attack(event->par);
             break;
     }
 }
