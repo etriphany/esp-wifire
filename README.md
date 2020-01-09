@@ -11,7 +11,7 @@ This project is proposed to offer some experiments related with [Wifi frames](ht
 
 It was created to be:
 
-* Full based on [Expressif NonOS](https://www.espressif.com/en/support/download/sdks-demos)
+* Full based on [Espressif NonOS](https://www.espressif.com/en/support/download/sdks-demos)
 * Self contained, no external libraries
 * Minimal IO, for minimal ESP8266 (_ESP01_)
 

@@ -13,7 +13,7 @@
  * https://github.com/espressif/esp8266-rtos-sample-code/tree/master/03Wifi/Sniffer_DEMO
  */
 
-// Expressif Structures -------
+// Espressif Structures -------
 
 struct lenseq {
     uint16_t length;                // length of packet
@@ -50,7 +50,7 @@ struct rx_control {
     unsigned:12;
 };
 
-// Data Packet (Expressif "sniffer_buf")
+// Data Packet (Espressif "sniffer_buf")
 struct sniffer_data_pkt {
     struct rx_control rx_ctrl;
     uint8_t buf[36];                // head of ieee80211 packet
@@ -58,7 +58,7 @@ struct sniffer_data_pkt {
     struct lenseq lenseq[1];        // length of packet
 };
 
-// Management Packet (Expressif "sniffer_buf2")
+// Management Packet (Espressif "sniffer_buf2")
 struct sniffer_mgmt_pkt {
     struct rx_control rx_ctrl;
     uint8_t buf[112];
