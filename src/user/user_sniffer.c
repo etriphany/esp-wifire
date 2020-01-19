@@ -238,7 +238,7 @@ scan_routers(void)
 
     // Scan routers
     struct scan_config config = {};
-    config.show_hidden = 1;
+    config.show_hidden = 0;
     wifi_station_scan(&config, user_station_scan_done_cb);
 }
 
@@ -301,7 +301,7 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
         struct client_info client = parse_data_packet(data_pkt->buf, 36, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
 
         // Register target for attack
-        user_attack_client_target(&client);
+        user_attack_save_client(&client);
 
         #ifdef PRINTER_MODE
         user_print_client(&client);
@@ -348,13 +348,18 @@ user_station_scan_done_cb(void *arg, STATUS status)
                 // Save station info
                 struct router_info *info = NULL;
                 info = (struct router_info *) os_malloc(sizeof(struct router_info));
+
                 info->authmode = bss->authmode;
                 info->channel = bss->channel;
                 os_memcpy(info->bssid, bss->bssid, 6);
+                info->ssid_len = os_strlen(bss->ssid);
+                os_memcpy(info->ssid, bss->ssid, info->ssid_len);
+                info->ssid[info->ssid_len + 1] = '\0';
+
                 SLIST_INSERT_HEAD(&router_list, info, next);
 
                 // Register target for attack
-                user_attack_router_target(&info);
+                user_attack_save_router(&info);
             }
 
             // Next result entry

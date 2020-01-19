@@ -32,7 +32,7 @@ user_task0_cb(os_event_t *event)
     switch(event->sig)
     {
         case SIG_SNIFFER_UP:
-            user_attacks_init(event->par);
+            user_attack_init(event->par);
             break;
 
         case SIG_CHANNEL:
@@ -41,7 +41,6 @@ user_task0_cb(os_event_t *event)
 
         case SIG_CLOCK_TICK:
             user_sniffer_update(event->par);
-            user_batch_attack(event->par);
             break;
     }
 }

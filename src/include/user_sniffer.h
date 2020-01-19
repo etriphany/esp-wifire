@@ -161,6 +161,8 @@ struct client_info {
 struct router_info {
     SLIST_ENTRY(router_info) next;
     uint8_t bssid[MAC_ADDR_LEN];
+	uint8_t ssid[MAX_SSID_LEN + 1];
+	uint8_t ssid_len;
     uint8_t channel;
     uint8_t authmode;
     uint16_t rx_seq;

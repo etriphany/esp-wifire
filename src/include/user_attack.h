@@ -15,10 +15,9 @@ struct fake_router_info {
     uint8_t ssid[MAX_SSID_LEN + 1];
 };
 
-void user_attack_router_target(struct router_info *router);
-void user_attack_client_target(struct client_info *client);
+void user_attack_save_router(struct router_info *router);
+void user_attack_save_client(struct client_info *client);
 void user_attack_set_channel(uint8_t channel);
-void user_batch_attack(uint32_t millis);
-void user_attacks_init(uint8_t channel);
+void user_attack_init(uint8_t channel);
 
 #endif
