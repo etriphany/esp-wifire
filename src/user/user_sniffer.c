@@ -24,9 +24,6 @@
  */
 
 // Features
-const uint8_t cli_broadcast1[3] = {0x01, 0x00, 0x5e};
-const uint8_t cli_broadcast2[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-const uint8_t cli_broadcast3[3] = {0x33, 0x33, 0x00};
 static bool started = FALSE;
 static uint32_t ts_channel = 0;
 static uint32_t ts_routers = 0;
@@ -118,6 +115,11 @@ parse_beacon_packet(uint8_t* buf, uint16_t buf_len)
 struct client_info ICACHE_FLASH_ATTR
 parse_data_packet(uint8_t* buf, uint16_t buf_len, int rssi, uint8_t channel)
 {
+    // Broadcast MACs
+    const uint8_t cli_broadcast1[3] = {0x01, 0x00, 0x5e};
+    const uint8_t cli_broadcast2[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    const uint8_t cli_broadcast3[3] = {0x33, 0x33, 0x00};
+
     // Prepare client
     struct client_info client;
 	client.err = 0;
@@ -299,7 +301,7 @@ user_promiscuous_rx_cb(uint8_t *buf, uint16_t buf_len)
         struct client_info client = parse_data_packet(data_pkt->buf, 36, pkt->rx_ctrl.rssi, pkt->rx_ctrl.channel);
 
         // Register target for attack
-        //user_attack_client_target(&client);
+        user_attack_client_target(&client);
 
         #ifdef PRINTER_MODE
         user_print_client(&client);
@@ -352,7 +354,7 @@ user_station_scan_done_cb(void *arg, STATUS status)
                 SLIST_INSERT_HEAD(&router_list, info, next);
 
                 // Register target for attack
-                //user_attack_router_target(&info);
+                user_attack_router_target(&info);
             }
 
             // Next result entry

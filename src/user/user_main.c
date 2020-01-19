@@ -75,6 +75,9 @@ user_system_init_done_cb(void)
 void ICACHE_FLASH_ATTR
 user_init()
 {
+    // Required for us timer
+    system_timer_reinit();
+
     // Configure flash partition
     partition_item_t partition_item;
     if (!system_partition_get_item(SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM, &partition_item))

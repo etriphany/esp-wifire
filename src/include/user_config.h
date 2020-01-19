@@ -1,6 +1,8 @@
 #ifndef _USER_CONFIG_H
 #define _USER_CONFIG_H
 
+#define MAC_STR(mac, buf) os_sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
 #define ESP01
 
 // ESP01 (black 1MB) Flash Addresses
@@ -27,6 +29,9 @@
 #define SYSTEM_PARTITION_CUSTOMER_PRIV_PARAM        SYSTEM_PARTITION_CUSTOMER_BEGIN
 #endif
 
+// Enable us timer
+#define USE_US_TIMER
+
 // Universal Wi-fi constants (don't touch)
 #define MAX_CHANNEL                                 14
 #define MAX_SSID_LEN                                32
@@ -41,13 +46,14 @@
 // Time delays
 #define ROUTERS_UPDATE_DELAY                        25 * 60 * 1000  // 25 min
 #define CHANNEL_CHANGE_DELAY                        5 * 60 * 1000   // 5 min
-#define BEACON_SPAM_DELAY                           5               // 5 ms
+#define BEACON_SPAM_US_DELAY                        100             // 100 us
 
 // Tasks / Signals / Events
 #define TASK_QUEUE_SIZE                             4
 #define SIG_CLOCK_TICK                              0x10
 #define SIG_SNIFFER_UP                              0x20
 #define SIG_CHANNEL                                 0x30
+#define SIG_TARGET                                  0x40
 
 
 #endif
