@@ -202,7 +202,7 @@ sniff(void)
     if(!started)
         system_os_post(USER_TASK_PRIO_0, SIG_SNIFFER_UP, chdata.current);
     else
-        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, chdata.current);
+        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL_CHANGE, chdata.current);
 }
 
 /******************************************************************************
@@ -233,6 +233,9 @@ pick_valid_channel(void)
 void ICACHE_FLASH_ATTR
 scan_routers(void)
 {
+    // Post event
+    system_os_post(USER_TASK_PRIO_0, SIG_ROUTER_SCAN, 0);
+
     // Turn off promiscuous mode
     wifi_promiscuous_enable(0);
 
@@ -255,7 +258,7 @@ set_wifi_channel(uint8_t channel)
         wifi_set_channel(chdata.current);
 
         // Post event
-        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL, chdata.current);
+        system_os_post(USER_TASK_PRIO_0, SIG_CHANNEL_CHANGE, chdata.current);
     }
 }
 
@@ -349,10 +352,14 @@ user_station_scan_done_cb(void *arg, STATUS status)
                 struct router_info *info = NULL;
                 info = (struct router_info *) os_malloc(sizeof(struct router_info));
 
+                // Auth
                 info->authmode = bss->authmode;
+                // Channel
                 info->channel = bss->channel;
+                // BSSID
                 os_memcpy(info->bssid, bss->bssid, 6);
                 info->ssid_len = os_strlen(bss->ssid);
+                // SSID
                 os_memcpy(info->ssid, bss->ssid, info->ssid_len);
                 info->ssid[info->ssid_len + 1] = '\0';
 

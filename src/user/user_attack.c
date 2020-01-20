@@ -123,8 +123,6 @@ send_packet(uint8_t* packet, uint16_t packet_size, uint16_t repeat)
 void ICACHE_FLASH_ATTR
 attack_deauth(uint8_t* ap_mac, uint8_t* client_mac, uint8_t reason, uint8_t channel)
 {
-    bool success = false;
-
     // Build deauth packet
     uint16_t packet_size = sizeof(deauth_packet);
     os_memcpy(&deauth_packet[4], client_mac, MAC_ADDR_LEN);
@@ -284,7 +282,8 @@ user_attack_tick_cb(void)
 /******************************************************************************
  * Save router victim
  *******************************************************************************/
-void user_attack_save_router(struct router_info *router)
+void ICACHE_FLASH_ATTR
+user_attack_save_router(struct router_info *router)
 {
     // Create hashmap
     if(routers_hash == NULL)
@@ -302,7 +301,8 @@ void user_attack_save_router(struct router_info *router)
 /******************************************************************************
  * Save client victim
  *******************************************************************************/
-void user_attack_save_client(struct client_info *client)
+void ICACHE_FLASH_ATTR
+user_attack_save_client(struct client_info *client)
 {
     // Create hashmap
     if(clients_hash == NULL)
@@ -320,7 +320,8 @@ void user_attack_save_client(struct client_info *client)
 /******************************************************************************
  * Channel update
  *******************************************************************************/
-void user_attack_set_channel(uint8_t channel)
+void ICACHE_FLASH_ATTR
+user_attack_set_channel(uint8_t channel)
 {
     current_channel = channel;
 
@@ -331,6 +332,17 @@ void user_attack_set_channel(uint8_t channel)
     // Clean targets
     os_free(clients_hash);
     clients_hash = hash_create(MAX_TRACKED_CLIENTS);
+}
+
+/******************************************************************************
+ * Routers cleanup
+ *******************************************************************************/
+void ICACHE_FLASH_ATTR
+user_attack_clean_routers(void)
+{
+    // Clean targets
+    os_free(routers_hash);
+    routers_hash = hash_create(MAX_TRACKED_ROUTERS);
 }
 
 /******************************************************************************

@@ -26,7 +26,7 @@ static const partition_item_t at_partition_table[] = {
 /******************************************************************************
  * Task callback / Priority 0 (lower).
  *******************************************************************************/
-static void ICACHE_FLASH_ATTR
+void ICACHE_FLASH_ATTR
 user_task0_cb(os_event_t *event)
 {
     switch(event->sig)
@@ -35,8 +35,12 @@ user_task0_cb(os_event_t *event)
             user_attack_init(event->par);
             break;
 
-        case SIG_CHANNEL:
+        case SIG_CHANNEL_CHANGE:
             user_attack_set_channel(event->par);
+            break;
+
+        case SIG_ROUTER_SCAN:
+            user_attack_clean_routers();
             break;
 
         case SIG_CLOCK_TICK:
@@ -47,8 +51,6 @@ user_task0_cb(os_event_t *event)
 
 /******************************************************************************
  * System init done callback.
- *
- * Callback not marked as ICACHE_FLASH_ATTR (loaded to iRam on boot)
  *******************************************************************************/
 void ICACHE_FLASH_ATTR
 user_system_init_done_cb(void)

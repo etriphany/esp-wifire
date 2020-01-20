@@ -53,8 +53,8 @@
 #define TASK_QUEUE_SIZE                             4
 #define SIG_CLOCK_TICK                              0x10
 #define SIG_SNIFFER_UP                              0x20
-#define SIG_CHANNEL                                 0x30
-#define SIG_TARGET                                  0x40
+#define SIG_CHANNEL_CHANGE                          0x30
+#define SIG_ROUTER_SCAN                             0x40
 
 
 #endif
